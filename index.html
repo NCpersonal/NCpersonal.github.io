@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claw — Multi-Agent AI Terminal</title>
+<meta name="description" content="Multi-agent AI terminal with built-in web gateway, group chat, per-agent API, and command engine. pip install nc-claw">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#08080a;--s1:#0c0c10;--s2:#121218;--s3:#1a1a22;--s4:#22222e;--bd:#1c1c28;--bd2:#282838;--g:#00ff88;--g2:#00d874;--gd:rgba(0,255,136,.05);--gd2:rgba(0,255,136,.1);--c:#00d4ff;--a:#ffb800;--m:#ff44cc;--r:#ff3355;--b:#4488ff;--t:#eae8e3;--t2:#9a9890;--t3:#504e48;--t4:#2e2c28;--f:'DM Mono','Courier New',mono;--h:'Syne',system-ui,sans}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t);font-family:var(--f);font-weight:300;line-height:1.8;font-size:14px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--g);color:var(--bg)}
+a{color:var(--g);text-decoration:none}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");opacity:.015;pointer-events:none;z-index:10000}
+.wrap{max-width:960px;margin:0 auto;padding:0 2rem}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:50px;background:rgba(8,8,10,.9);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd)}
+nav .inner{display:flex;align-items:center;justify-content:space-between;height:100%;max-width:960px;margin:0 auto;padding:0 2rem}
+.logo{font-family:var(--h);font-weight:700;font-size:.9rem;color:var(--t);display:flex;align-items:center;gap:.45rem}
+.logo .v{font-family:var(--f);font-size:.55rem;font-weight:300;color:var(--t3);background:var(--s2);padding:.1rem .35rem;border-radius:3px}
+.nav-r{display:flex;gap:1.2rem;align-items:center}
+.nav-r a{font-size:.68rem;color:var(--t3);letter-spacing:.03em}.nav-r a:hover{color:var(--g)}
+.nav-r .pip{font-size:.62rem;color:var(--g);background:var(--gd);padding:.25rem .6rem;border-radius:5px;border:1px solid rgba(0,255,136,.08)}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;align-items:center;padding-top:50px}
+.hero-inner{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+.hero-left{display:flex;flex-direction:column;gap:1.5rem}
+.badge{display:inline-flex;align-items:center;gap:.45rem;padding:.2rem .6rem;border:1px solid rgba(0,255,136,.1);border-radius:100px;font-size:.6rem;color:var(--g);background:var(--gd);width:fit-content}
+.badge .dot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:pls 2s ease infinite}
+@keyframes pls{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-family:var(--h);font-size:clamp(2.2rem,5vw,3.6rem);font-weight:800;line-height:1;letter-spacing:-.04em}
+h1 .g{color:var(--g)}.sub{color:var(--t2);max-width:420px;line-height:1.7;font-size:.92rem}
+.hero-btns{display:flex;gap:.6rem;flex-wrap:wrap}
+.btn{padding:.5rem 1rem;font-family:var(--f);font-size:.7rem;border-radius:6px;border:1px solid var(--bd);background:none;color:var(--t2);cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;transition:all .2s;text-decoration:none}
+.btn:hover{border-color:var(--t3);color:var(--t)}
+.btn-g{background:var(--g);color:var(--bg);border-color:var(--g);font-weight:500}
+.btn-g:hover{background:var(--g2);border-color:var(--g2);color:var(--bg)}
+.install{display:flex;align-items:center;background:var(--s1);border:1px solid var(--bd);border-radius:8px;overflow:hidden;width:fit-content;transition:border-color .3s}
+.install:hover{border-color:rgba(0,255,136,.2)}
+.install .pf{padding:.55rem .8rem;font-size:.75rem;color:var(--g);background:var(--s2);border-right:1px solid var(--bd);user-select:none}
+.install code{padding:.55rem 1rem;font-size:.78rem;color:var(--t)}
+.install .cp{padding:.55rem .7rem;border:none;background:none;color:var(--t4);cursor:pointer;font-family:var(--f);font-size:.65rem;border-left:1px solid var(--bd);transition:color .2s}
+.install .cp:hover,.install .cp.on{color:var(--g)}
+
+/* HERO RIGHT — WEB UI MOCKUP */
+.web-mock{background:var(--s1);border:1px solid var(--bd);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.wm-bar{display:flex;align-items:center;gap:.35rem;padding:.5rem .8rem;background:var(--s2);border-bottom:1px solid var(--bd)}
+.wm-dot{width:8px;height:8px;border-radius:50%}.wm-dot.r{background:#ff5f57}.wm-dot.y{background:#febc2e}.wm-dot.g{background:#28c840}
+.wm-bar .url{flex:1;text-align:center;font-size:.58rem;color:var(--t4);background:var(--s3);padding:.2rem .6rem;border-radius:4px;margin:0 2rem}
+.wm-body{display:grid;grid-template-columns:140px 1fr;height:320px}
+.wm-side{border-right:1px solid var(--bd);padding:.6rem;display:flex;flex-direction:column;gap:.3rem;background:var(--s2)}
+.wm-side .ws-h{font-size:.52rem;color:var(--t4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.1rem}
+.wm-side .ws-item{display:flex;align-items:center;gap:.3rem;padding:.25rem .4rem;border-radius:5px;font-size:.6rem;color:var(--t3);cursor:default}
+.wm-side .ws-item.on{background:var(--gd);color:var(--g)}
+.wm-side .ws-item .wd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.wm-side .ws-item .wk{font-size:.5rem;opacity:.6}
+.wm-side .ws-btn{margin-top:auto;display:flex;gap:.3rem}
+.wm-side .ws-btn span{flex:1;text-align:center;padding:.2rem;border:1px solid var(--bd);border-radius:4px;font-size:.5rem;color:var(--t4);cursor:default}
+.wm-chat{display:flex;flex-direction:column;padding:.6rem}
+.wm-topbar{display:flex;align-items:center;gap:.4rem;padding-bottom:.4rem;border-bottom:1px solid var(--bd);margin-bottom:.4rem}
+.wm-topbar .wt{font-size:.65rem;font-weight:500;color:var(--t)}.wm-topbar .ws{font-size:.52rem;color:var(--t4)}
+.wm-msgs{flex:1;display:flex;flex-direction:column;gap:.5rem;overflow:hidden}
+.wm-msg{display:flex;gap:.4rem;align-items:flex-start}
+.wm-av{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.6rem;flex-shrink:0;font-weight:600}
+.wm-msg .wbody{flex:1;min-width:0}
+.wm-msg .wsender{font-size:.5rem;color:var(--t3);margin-bottom:.05rem}
+.wm-msg .wbubble{font-size:.6rem;color:var(--t2);line-height:1.5;padding:.3rem .5rem;border-radius:6px;background:var(--s3);border:1px solid var(--bd);max-width:90%}
+.wm-msg.user{flex-direction:row-reverse}
+.wm-msg.user .wbody{text-align:right}
+.wm-msg.user .wbubble{background:rgba(68,136,255,.08);border-color:rgba(68,136,255,.15);color:var(--t)}
+.wm-msg .wbubble code{font-size:.55rem;background:var(--bg);padding:.05rem .25rem;border-radius:3px;color:var(--g)}
+.wm-input{display:flex;gap:.3rem;margin-top:.4rem;border-top:1px solid var(--bd);padding-top:.4rem}
+.wm-input .wi{flex:1;background:var(--s3);border:1px solid var(--bd);border-radius:6px;padding:.3rem .5rem;font-size:.58rem;color:var(--t3);font-family:var(--f)}
+.wm-input .wsb{padding:.3rem .6rem;background:var(--g);border:none;border-radius:6px;font-size:.55rem;font-family:var(--f);font-weight:500;color:var(--bg);cursor:default}
+
+/* STREAMING ANIMATION */
+.wm-msg.stream-msg{animation:fadeMsg .4s ease forwards}
+@keyframes fadeMsg{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.wm-typing{display:flex;gap:.2rem;padding:.3rem .5rem}
+.wm-typing span{width:4px;height:4px;border-radius:50%;background:var(--t4);animation:typeDot 1.2s ease infinite}
+.wm-typing span:nth-child(2){animation-delay:.15s}.wm-typing span:nth-child(3){animation-delay:.3s}
+@keyframes typeDot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+/* SECTION SHARED */
+.sec{padding:5rem 0;border-top:1px solid var(--bd)}
+.sec-l{font-size:.62rem;color:var(--g);text-transform:uppercase;letter-spacing:.15em;margin-bottom:.6rem}
+.sec-t{font-family:var(--h);font-size:clamp(1.3rem,2.8vw,2rem);font-weight:700;line-height:1.15;margin-bottom:.4rem;letter-spacing:-.02em}
+.sec-t b{color:var(--g)}
+.sec-p{color:var(--t2);max-width:480px;margin-bottom:2.2rem;font-size:.85rem;line-height:1.65}
+
+/* TABS */
+.tabs{display:flex;gap:.15rem;margin-bottom:1.5rem;border-bottom:1px solid var(--bd);padding-bottom:.4rem}
+.tabs button{background:none;border:none;font-family:var(--f);font-size:.68rem;color:var(--t3);padding:.3rem .6rem;border-radius:4px;cursor:pointer;position:relative;transition:color .2s}
+.tabs button.on{color:var(--g)}
+.tabs button.on::after{content:'';position:absolute;bottom:-.45rem;left:0;right:0;height:1px;background:var(--g)}
+.tp{display:none}.tp.on{display:block}
+
+/* FEATURES */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem}
+.feat{border-left:2px solid var(--bd);padding-left:1rem;transition:border-color .3s}
+.feat:hover{border-left-color:var(--g)}
+.feat h3{font-family:var(--h);font-size:.82rem;font-weight:600;margin-bottom:.2rem}
+.feat p{font-size:.74rem;color:var(--t3);line-height:1.6}
+.feat .tag{display:inline-block;font-size:.52rem;padding:.05rem .35rem;border-radius:3px;margin-bottom:.3rem;font-weight:500;letter-spacing:.05em;text-transform:uppercase}
+.tag-g{background:var(--gd);color:var(--g);border:1px solid rgba(0,255,136,.1)}
+.tag-c{background:rgba(0,212,255,.05);color:var(--c);border:1px solid rgba(0,212,255,.1)}
+.tag-a{background:rgba(255,184,0,.05);color:var(--a);border:1px solid rgba(255,184,0,.1)}
+.tag-b{background:rgba(68,136,255,.05);color:var(--b);border:1px solid rgba(68,136,255,.1)}
+
+/* TERMINAL DEMO */
+.term-demo{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.term-box{background:var(--s1);border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.term-box .tb-bar{display:flex;align-items:center;gap:.3rem;padding:.5rem .7rem;background:var(--s2);border-bottom:1px solid var(--bd);font-size:.58rem;color:var(--t4)}
+.term-box .tb-bar .t-dot{width:7px;height:7px;border-radius:50%}
+.term-box .tb-bar .t-dot.r{background:#ff5f57}.term-box .tb-bar .t-dot.y{background:#febc2e}.term-box .tb-bar .t-dot.g{background:#28c840}
+.term-box .tb-body{padding:.8rem;font-size:.66rem;line-height:1.85;max-height:340px;overflow:hidden}
+.ln{white-space:pre-wrap;word-break:break-all}
+.cg{color:var(--g)}.cc{color:var(--c)}.ca{color:var(--a)}.cm{color:var(--m)}.cb{color:var(--b)}.cd{color:var(--t3)}.cw{color:var(--t);font-weight:500}.cs{color:var(--t4)}
+
+/* QUICK START */
+.qs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.qs-card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:1.2rem}
+.qs-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;border:1px solid rgba(0,255,136,.1);background:var(--gd);font-family:var(--h);font-weight:700;font-size:.8rem;color:var(--g);margin-bottom:.6rem}
+.qs-card h3{font-family:var(--h);font-size:.78rem;font-weight:600;margin-bottom:.25rem}
+.qs-card p{font-size:.7rem;color:var(--t3);line-height:1.5;margin-bottom:.5rem}
+.qs-card code{display:block;background:var(--bg);border:1px solid var(--bd);padding:.4rem .6rem;border-radius:5px;font-size:.7rem;color:var(--g);word-break:break-all}
+
+/* COMPARE */
+.cmp table{width:100%;border-collapse:collapse;font-size:.7rem;margin-top:1.5rem}
+.cmp th{text-align:left;padding:.5rem .7rem;border-bottom:2px solid var(--bd);color:var(--t3);font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;font-weight:300}
+.cmp td{padding:.45rem .7rem;border-bottom:1px solid var(--bd)}
+.cmp tr:hover td{background:rgba(255,255,255,.008)}
+.cmp .y{color:var(--g)}.cmp .n{color:var(--t4)}.cmp .hl{font-weight:500}
+
+/* CTA */
+.cta{padding:5rem 0;text-align:center;border-top:1px solid var(--bd);position:relative}
+.cta::before{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:400px;height:200px;background:radial-gradient(ellipse,rgba(0,255,136,.04) 0%,transparent 65%);pointer-events:none}
+.cta h2{font-family:var(--h);font-size:clamp(1.4rem,3vw,2.2rem);font-weight:700;margin-bottom:.4rem;position:relative}
+.cta h2 code{display:block;font-size:.55em;color:var(--g);font-weight:400;margin-bottom:.3rem}
+.cta p{color:var(--t2);margin-bottom:1.5rem;position:relative;font-size:.85rem}
+
+/* FOOTER */
+footer{border-top:1px solid var(--bd);padding:1.2rem 0}
+.foot{display:flex;justify-content:space-between;align-items:center;font-size:.62rem;color:var(--t4)}
+.foot a{color:var(--t3)}.foot a:hover{color:var(--g)}
+
+/* FADE IN */
+.fade-up{opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s}
+.fade-up.vis{opacity:1;transform:translateY(0)}
+
+@media(max-width:800px){
+  .hero-inner{grid-template-columns:1fr}
+  .web-mock{order:2}
+  .feat-grid{grid-template-columns:1fr}
+  .term-demo{grid-template-columns:1fr}
+  .qs-grid{grid-template-columns:1fr}
+  .cmp{overflow-x:auto}.cmp table{min-width:520px}
+  .nav-r a:not(.pip){display:none}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <div class="logo">🐾 claw <span class="v">v0.6.2</span></div>
+    <div class="nav-r">
+      <a href="#features">Features</a>
+      <a href="#quickstart">Start</a>
+      <a href="https://github.com/NCpersonal/NCpersonal.github.io" target="_blank">GitHub</a>
+      <a class="pip" href="https://pypi.org/project/nc-claw/" target="_blank">pip install nc-claw</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="badge"><span class="dot"></span> v0.6.2 · Gateway + Terminal · Zero deps</div>
+        <h1>Terminal AI<br>with <span class="g">multi-agent</span><br>group chat.</h1>
+        <p class="sub">启动即开网关，浏览器打开即聊。多个 AI Agent 各自独立 API 和记忆，通过 @mention 在群聊中链式协作。</p>
+        <div class="install">
+          <span class="pf">$</span>
+          <code>pip install nc-claw</code>
+          <button class="cp" onclick="doCopy(this)">Copy</button>
+        </div>
+        <div class="hero-btns">
+          <a class="btn btn-g" href="#quickstart">Get Started</a>
+          <a class="btn" href="https://pypi.org/project/nc-claw/" target="_blank">PyPI</a>
+          <a class="btn" href="https://github.com/NCpersonal/NCpersonal.github.io" target="_blank">Source</a>
+        </div>
+      </div>
+
+      <!-- WEB UI MOCKUP -->
+      <div class="web-mock">
+        <div class="wm-bar">
+          <div class="wm-dot r"></div><div class="wm-dot y"></div><div class="wm-dot g"></div>
+          <div class="url">localhost:8765</div>
+        </div>
+        <div class="wm-body">
+          <div class="wm-side">
+            <div class="ws-h">Chats</div>
+            <div class="ws-item"><span class="wd" style="background:var(--t4)"></span>Claw (Default)</div>
+            <div class="ws-item on"><span class="wd" style="background:var(--g)"></span>GPT-4o</div>
+            <div class="ws-item"><span class="wd" style="background:var(--a)"></span>DeepSeek</div>
+            <div class="ws-item"><span class="wd" style="background:var(--c)"></span>Claude</div>
+            <div class="ws-h" style="margin-top:.3rem">Groups</div>
+            <div class="ws-item"><span class="wd" style="background:var(--m)"></span>team <span class="wk">3</span></div>
+            <div class="ws-btn">
+              <span>+Agent</span><span>+Group</span>
+            </div>
+          </div>
+          <div class="wm-chat">
+            <div class="wm-topbar">
+              <span class="wt">GPT-4o</span><span class="ws">Agent · @gpt · gpt-4o</span>
+            </div>
+            <div class="wm-msgs">
+              <div class="wm-msg user stream-msg">
+                <div class="wm-av" style="background:rgba(68,136,255,.1);color:var(--b)">Y</div>
+                <div class="wbody"><div class="wbubble">写个 HTTP 文件服务器</div></div>
+              </div>
+              <div class="wm-msg stream-msg">
+                <div class="wm-av" style="background:var(--gd);color:var(--g)">G</div>
+                <div class="wbody">
+                  <div class="wsender">GPT-4o <span style="color:var(--t4)">12:34</span></div>
+                  <div class="wbubble">好的，我来写一个：
+<code>//write server.py</code>
+已创建，自动启动在 <code>:8080</code></div>
+                </div>
+              </div>
+              <div class="wm-msg stream-msg">
+                <div class="wm-av" style="background:var(--gd);color:var(--g)">G</div>
+                <div class="wbody">
+                  <div class="wbubble" style="border-left:2px solid var(--a);background:rgba(255,184,0,.03)">
+                    <div style="font-size:.5rem;color:var(--a);margin-bottom:.15rem">//exec python3 server.py &amp;</div>
+                    <div style="font-size:.5rem;color:var(--t3)">Server running on :8080</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="wm-input">
+              <div class="wi">输入消息...</div>
+              <div class="wsb">Send</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TERMINAL DEMOS -->
+<div class="wrap sec" id="demo">
+  <div class="sec-l">Terminal</div>
+  <div class="sec-t">终端变<b>日志面板</b></div>
+  <p class="sec-p">启动后终端自动显示实时日志。Gateway 连接、对话路由、命令执行，一目了然。</p>
+  <div class="term-demo">
+    <div class="term-box">
+      <div class="tb-bar"><div class="t-dot r"></div><div class="t-dot y"></div><div class="t-dot g"></div> <span style="margin-left:.5rem">claw — launch</span></div>
+      <div class="tb-body">
+<div class="ln"><span class="cd">$ claw</span></div>
+<div class="ln"><span class="cw cg">  🐾 Claw v0.6.2</span></div>
+<div class="ln"><span class="cd">  Model:   gpt-4o</span></div>
+<div class="ln"><span class="cd">  Gateway: </span><span class="cc">http://localhost:8765</span></div>
+<div class="ln"><span class="cd">  Agents:  </span><span class="cg">2</span><span class="cd">  Groups: </span><span class="cg">1</span></div>
+<div class="ln">&nbsp;</div>
+<div class="ln"><span class="cd">  [12:34]</span> <span class="cg">GW</span> started on :8765</div>
+<div class="ln"><span class="cd">  [12:35]</span> <span class="cg">CHAT</span> [default] 帮我写个...</div>
+<div class="ln"><span class="cd">  [12:35]</span> <span class="cg">REPLY</span> (2.1s, 2698 tok)</div>
+<div class="ln"><span class="cd">  [12:35]</span> <span class="ca">CMD</span> write server.py</div>
+<div class="ln"><span class="cd">  [12:35]</span> <span class="ca">CMD</span> exec python3 server.py</div>
+      </div>
+    </div>
+    <div class="term-box">
+      <div class="tb-bar"><div class="t-dot r"></div><div class="t-dot y"></div><div class="t-dot g"></div> <span style="margin-left:.5rem">claw — group chat</span></div>
+      <div class="tb-body">
+<div class="ln"><span class="cb">you [team]</span>> <span class="cw">@gpt 写代码让 @deep 审查</span></div>
+<div class="ln">&nbsp;</div>
+<div class="ln"><span class="cg cw">GPT-4o</span>> 好的，快速排序：</div>
+<div class="ln"><span class="cd">  [write] quicksort.py</span></div>
+<div class="ln">&nbsp;</div>
+<div class="ln"><span class="cd">  → @deep summoned by @gpt</span></div>
+<div class="ln">&nbsp;</div>
+<div class="ln"><span class="ca cw">DeepSeek</span>> 审查结果：</div>
+<div class="ln"><span class="cd">  1. 算法正确    ✓</span></div>
+<div class="ln"><span class="cd">  2. 处理空列表   △</span></div>
+<div class="ln"><span class="cd">  3. 类型提示建议  △</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="sec-l">Features</div>
+    <div class="sec-t">一个命令启动，<b>完整 AI 工作台</b></div>
+    <p class="sec-p">终端变日志面板，浏览器变聊天界面。多个 Agent 在群聊中协作。</p>
+    <div class="feat-grid">
+      <div class="feat fade-up">
+        <span class="tag tag-g">Core</span>
+        <h3>Built-in Gateway</h3>
+        <p>启动即开网关（默认 :8765），浏览器打开即用。流式逐字输出、代码高亮、命令实时执行反馈。</p>
+      </div>
+      <div class="feat fade-up">
+        <span class="tag tag-g">Core</span>
+        <h3>Multi-Agent</h3>
+        <p>任意数量命名 Agent，各自独立人设、对话历史。支持 OpenAI、DeepSeek、Claude、Ollama 等任意兼容接口。</p>
+      </div>
+      <div class="feat fade-up">
+        <span class="tag tag-c">Chat</span>
+        <h3>Group Chat &amp; @mention</h3>
+        <p>多 Agent 群聊，@name 定向发言，@all 全员讨论。AI 回复中 @其他 Agent 自动触发链式召唤。</p>
+      </div>
+      <div class="feat fade-up">
+        <span class="tag tag-a">Engine</span>
+        <h3>Command Engine</h3>
+        <p>AI 嵌入 22+ 命令（//exec //write //read //python 等），自动执行回传结果继续对话。危险命令自动拦截。</p>
+      </div>
+      <div class="feat fade-up">
+        <span class="tag tag-b">UI</span>
+        <h3>Web UI Console</h3>
+        <p>内置命令台直接执行服务器命令，实时日志面板监控所有请求和事件。支持 Agent/Group GUI 管理。</p>
+      </div>
+      <div class="feat fade-up">
+        <span class="tag tag-b">UI</span>
+        <h3>Terminal Dashboard</h3>
+        <p>终端自动变实时日志：连接状态、请求路由、命令执行追踪。/log 控制级别，0=关闭 1=常规 2=详细。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICK START -->
+<section class="sec" id="quickstart">
+  <div class="wrap">
+    <div class="sec-l">Quick Start</div>
+    <div class="sec-t">三步开始</div>
+    <div class="qs-grid">
+      <div class="qs-card fade-up">
+        <div class="qs-num">1</div>
+        <h3>Install</h3>
+        <p>Python 3.8+，零依赖</p>
+        <code>pip install nc-claw</code>
+      </div>
+      <div class="qs-card fade-up">
+        <div class="qs-num">2</div>
+        <h3>Run</h3>
+        <p>终端变日志面板，自动开网关</p>
+        <code>claw</code>
+      </div>
+      <div class="qs-card fade-up">
+        <div class="qs-num">3</div>
+        <h3>Chat</h3>
+        <p>终端或浏览器打开</p>
+        <code>http://localhost:8765</code>
+      </div>
+    </div>
+
+    <div style="margin-top:2rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="qs-card fade-up">
+        <h3 style="color:var(--g)">Create Agents</h3>
+        <p>终端命令或 Web UI 点击 +Agent</p>
+        <code>/agent create gpt<br>/agent create deep<br>  API Key: sk-xxx<br>  API Base: api.deepseek.com/v1<br>  Model: deepseek-chat</code>
+      </div>
+      <div class="qs-card fade-up">
+        <h3 style="color:var(--c)">Group Chat</h3>
+        <p>多 Agent 群聊，@mention 路由</p>
+        <code>/group create team gpt,deep<br>/group enter team<br><br>@gpt 写个 API 并让 @deep 审查<br>@all 比较下这两个方案</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section class="sec cmp">
+  <div class="wrap">
+    <div class="sec-l">Compare</div>
+    <div class="sec-t">不同的<b>选择</b></div>
+    <table>
+      <thead><tr><th>Feature</th><th>ChatGPT</th><th>Aider</th><th>OpenCode</th><th class="hl" style="color:var(--g)">Claw</th></tr></thead>
+      <tbody>
+        <tr><td>Multi-Agent Chat</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+        <tr><td>AI @mention Chain</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+        <tr><td>Per-Agent API</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+        <tr><td>Built-in Web Gateway</td><td class="y">Web</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+        <tr><td>Terminal Native</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td>Command Engine</td><td class="n">—</td><td class="y">Git</td><td class="y">✓</td><td class="y">22+</td></tr>
+        <tr><td>Web Console &amp; Logs</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+        <tr><td>pip install</td><td class="n">—</td><td class="y">✓</td><td class="n">Go</td><td class="y">✓</td></tr>
+        <tr><td>Dependencies</td><td>Browser</td><td>pip</td><td>Go</td><td class="y">Zero</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="wrap">
+    <h2><code>$ pip install nc-claw</code>一个命令，<b style="color:var(--g)">无限可能</b></h2>
+    <p>Python 3.8+ · Zero dependencies · Cross-platform · Open source</p>
+    <div style="display:flex;gap:.6rem;justify-content:center;position:relative">
+      <a class="btn btn-g" href="https://pypi.org/project/nc-claw/" target="_blank">PyPI ↗</a>
+      <a class="btn" href="https://github.com/NCpersonal/NCpersonal.github.io" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <span>🐾 Claw v0.6.2</span>
+      <div style="display:flex;gap:1rem"><a href="https://pypi.org/project/nc-claw/" target="_blank">PyPI</a><a href="https://github.com/NCpersonal/NCpersonal.github.io" target="_blank">GitHub</a></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+function doCopy(b){navigator.clipboard.writeText('pip install nc-claw').then(function(){b.textContent='Copied';b.classList.add('on');setTimeout(function(){b.textContent='Copy';b.classList.remove('on')},1200)})}
+var obs=new IntersectionObserver(function(e){e.forEach(function(x,i){if(x.isIntersecting){setTimeout(function(){x.target.classList.add('vis')},i*60);obs.unobserve(x.target)}})},{threshold:.1});
+document.querySelectorAll('.fade-up').forEach(function(el){obs.observe(el)});
+</script>
+</body>
+</html>
